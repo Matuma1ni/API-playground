@@ -1,5 +1,13 @@
 import type { RequestStatus, StatusConfig } from "./types";
 
+export const REQUEST_STATUS = {
+  IDLE: "idle",
+  SENDING: "sending",
+  WAITING: "waiting",
+  SUCCESS: "success",
+  ERROR: "error",
+} as const;
+
 export const REQUEST_STATUS_CONFIG = {
   idle: null,
   sending: {

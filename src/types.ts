@@ -1,9 +1,7 @@
+import type { REQUEST_STATUS } from "./constants";
+
 export type RequestStatus =
-  | "idle"
-  | "sending"
-  | "waiting"
-  | "error"
-  | "success";
+  (typeof REQUEST_STATUS)[keyof typeof REQUEST_STATUS];
 
 export interface StatusConfig {
   indicatorClassName: string;
