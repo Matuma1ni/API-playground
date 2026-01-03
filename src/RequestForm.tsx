@@ -14,12 +14,19 @@ import { useEffect, useState } from "react";
 import { StatusIndicator } from "./StatusIndicator";
 import type { RequestStatus } from "./types";
 import { Label } from "./components/ui/label";
+import { REQUEST_STATUS } from "./constants";
 
 interface IFormInput {
   method: string;
   url: string;
   requestBody?: string;
 }
+
+const validateTimeout = (value: number) => {
+  if (value < 10) return "Timeout cannot be less than 10 seconds";
+  if (value > 120) return "Timeout cannot exceed 120 seconds";
+  return null;
+};
 
 export const RequestForm = () => {
   const {
@@ -37,31 +44,33 @@ export const RequestForm = () => {
   });
 
   const [timeout, setTimeout] = useState<number>(30);
+  const [timeoutError, setTimeoutError] = useState<string | null>(null);
+
   const [timeLeft, setTimeLeft] = useState<number>(timeout);
-  const [requestState, setRequestState] = useState<RequestStatus>("success");
+  const [requestState, setRequestState] = useState<RequestStatus>(REQUEST_STATUS.IDLE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const isInProgress = requestState == "waiting" || requestState == "sending";
+  const isInProgress = requestState == REQUEST_STATUS.WAITING || requestState == REQUEST_STATUS.SENDING;
 
   useEffect(() => {
     if (isDirty) {
-      setRequestState("idle");
+      setRequestState(REQUEST_STATUS.IDLE);
     }
   }, [isDirty]);
 
   const onSubmit: SubmitHandler<IFormInput> = (data) => {
-    setRequestState("sending");
+    setRequestState(REQUEST_STATUS.SENDING);
     setTimeLeft(timeout);
     console.log(data);
   };
 
   useEffect(() => {
-    if (requestState !== "sending") return;
+    if (requestState !== REQUEST_STATUS.SENDING) return;
 
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          setRequestState("error");
+          setRequestState(REQUEST_STATUS.ERROR);
           setErrorMessage("Request timed out");
           return timeout;
         }
@@ -83,9 +92,23 @@ export const RequestForm = () => {
           placeholder="Timeout (seconds)"
           id="timeout"
           value={timeout}
-          onChange={(e) => setTimeout(Number(e.target.value))}
-          className="max-w-[200px]"
+          onChange={(e) => {
+            setTimeout(Number(e.target.value));
+            setTimeoutError(null);
+          }}
+          onBlur={() => {
+            const error = validateTimeout(timeout);
+            setTimeoutError(error);
+          }}
+          min={10}
+          max={120}
+          className={`max-w-[200px] ${
+            !!timeoutError && "border border-red-500"
+          }`}
         />
+        {timeoutError && (
+          <small className="text-left text-red-700">{timeoutError}</small>
+        )}
       </div>
       <div className="w-full my-4 border" />
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -130,7 +153,7 @@ export const RequestForm = () => {
                           name={field.name}
                           message={fieldState.error?.message}
                           render={({ message }) => (
-                            <small className="text-red-500">{message}</small>
+                            <small className="text-red-700">{message}</small>
                           )}
                         />
                       )}
@@ -163,7 +186,7 @@ export const RequestForm = () => {
                           name={field.name}
                           message={fieldState.error?.message}
                           render={({ message }) => (
-                            <small className="text-red-500">{message}</small>
+                            <small className="text-red-700">{message}</small>
                           )}
                         />
                       )}
@@ -190,18 +213,16 @@ export const RequestForm = () => {
             <Button
               className="ml-3 px-7 self-end-safe"
               type="submit"
-              disabled={isInProgress}
+              disabled={isInProgress || !!timeoutError}
             >
               Send
             </Button>
             <div className="w-[200px]">
-              {requestState !== "idle" && (
-                <StatusIndicator
-                  status={requestState}
-                  timeLeft={timeLeft}
-                  errorMessage={errorMessage}
-                />
-              )}
+              <StatusIndicator
+                status={requestState}
+                timeLeft={timeLeft}
+                errorMessage={errorMessage}
+              />
             </div>
           </div>
         </div>

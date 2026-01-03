@@ -1,4 +1,4 @@
-import { REQUEST_STATUS_CONFIG } from "./constants";
+import { REQUEST_STATUS, REQUEST_STATUS_CONFIG } from "./constants";
 import type { RequestStatus } from "./types";
 
 type StatusIndicatorProps = {
@@ -21,10 +21,12 @@ export const StatusIndicator = ({
         <div className={`w-4 h-4 rounded-full ${config.indicatorClassName}`} />
         <span className={config.messageClassName}>{config.label}</span>
       </div>
-      {status === "error" && (
+      {status === REQUEST_STATUS.ERROR && (
         <div className={config.messageClassName}>{errorMessage}</div>
       )}
-      {status === "sending" && <span> {timeLeft}s until timeout</span>}
+      {status === REQUEST_STATUS.SENDING && (
+        <span> {timeLeft}s until timeout</span>
+      )}
     </div>
   );
 };
