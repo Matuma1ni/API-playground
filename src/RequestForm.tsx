@@ -10,12 +10,13 @@ import {
 import { Textarea } from "./components/ui/textarea";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusIndicator } from "./StatusIndicator";
-import type { RequestStatus } from "./types";
+import type { RequestStatus, ResponseData } from "./types";
 import { Label } from "./components/ui/label";
 import { REQUEST_STATUS } from "./constants";
 import { toast } from "sonner";
+import { Response } from "./Response";
 
 interface IFormInput {
   method: string;
@@ -51,6 +52,7 @@ export const RequestForm = () => {
   const [requestState, setRequestState] = useState<RequestStatus>(
     REQUEST_STATUS.IDLE
   );
+  const [response, setResponse] = useState<ResponseData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isInProgress =
     requestState === REQUEST_STATUS.WAITING ||
@@ -62,13 +64,41 @@ export const RequestForm = () => {
     }
   }, [isDirty]);
 
-  const onSubmit: SubmitHandler<IFormInput> = (data) => {
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const onSubmit: SubmitHandler<IFormInput> = async (data) => {
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setResponse(null)
     setRequestState(REQUEST_STATUS.SENDING);
     setTimeLeft(timeout);
+
+    try {
+      const response = await sendMockRequest(
+        data.method,
+        data.url,
+        controller.signal,
+        data.requestBody
+      );
+
+      setResponse(response);
+      setRequestState(REQUEST_STATUS.SUCCESS);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      setErrorMessage("Request failed");
+      setRequestState(REQUEST_STATUS.ERROR);
+    }
     console.log(data);
   };
 
   const onCancel = useCallback(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+
     setRequestState(REQUEST_STATUS.IDLE);
     setErrorMessage(null);
 
@@ -98,9 +128,13 @@ export const RequestForm = () => {
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
+          abortControllerRef.current?.abort();
+          abortControllerRef.current = null;
+
           clearInterval(interval);
           setRequestState(REQUEST_STATUS.ERROR);
           setErrorMessage("Request timed out");
+
           return timeout;
         }
         return prev - 1;
@@ -111,6 +145,35 @@ export const RequestForm = () => {
   }, [requestState, timeout]);
 
   const method = watch("method");
+
+  const sendMockRequest = (
+    method: string,
+    url: string,
+    signal: AbortSignal,
+    body?: string
+  ): Promise<ResponseData> => {
+    return new Promise((resolve, reject) => {
+      const start = performance.now();
+
+      const timeoutId = window.setTimeout(() => {
+        resolve({
+          status: 200,
+          statusText: "OK",
+          durationMs: Math.round(performance.now() - start),
+          body: {
+            method,
+            url,
+            body,
+          },
+        });
+      }, 500);
+
+      signal?.addEventListener("abort", () => {
+        clearTimeout(timeoutId);
+        reject(new DOMException("Aborted", "AbortError"));
+      });
+    });
+  };
 
   return (
     <div>
@@ -239,7 +302,11 @@ export const RequestForm = () => {
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <div className="flex flex-row gap-2 ml-4 justify-between">
+            <div
+              className={`flex flex-row gap-2 ml-4 ${
+                isInProgress ? "justify-between" : "justify-end"
+              }`}
+            >
               {isInProgress && (
                 <Button variant="secondary" onClick={onCancel}>
                   Cancel
@@ -263,6 +330,7 @@ export const RequestForm = () => {
           </div>
         </div>
       </form>
+      <Response response={response} />
     </div>
   );
 };
