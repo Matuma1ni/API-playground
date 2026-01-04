@@ -9,9 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -b main -d build"
+    "deploy": "gh-pages -d dist"
   },
-  "homepage": "http://Matuma1ni.github.io/API-playground",
+  "homepage": "https://matuma1ni.github.io/API-playground",
   "dependencies": {
     "@hookform/error-message": "^2.0.1",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
