@@ -53,8 +53,8 @@ export const RequestForm = () => {
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isInProgress =
-    requestState == REQUEST_STATUS.WAITING ||
-    requestState == REQUEST_STATUS.SENDING;
+    requestState === REQUEST_STATUS.WAITING ||
+    requestState === REQUEST_STATUS.SENDING;
 
   useEffect(() => {
     if (isDirty) {
