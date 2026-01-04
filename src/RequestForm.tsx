@@ -1,3 +1,13 @@
+import { useForm, Controller, type SubmitHandler } from "react-hook-form";
+import { ErrorMessage } from "@hookform/error-message";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
+
+import { REQUEST_STATUS } from "./constants";
+import { Response } from "./Response";
+import { useMockRequest } from "./useMockRequest";
+import { StatusIndicator } from "./StatusIndicator";
+
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import {
@@ -8,14 +18,7 @@ import {
   SelectValue,
 } from "./components/ui/select";
 import { Textarea } from "./components/ui/textarea";
-import { useForm, Controller, type SubmitHandler } from "react-hook-form";
-import { ErrorMessage } from "@hookform/error-message";
-import { useCallback, useEffect, useState } from "react";
-import { StatusIndicator } from "./StatusIndicator";
-import type { RequestStatus } from "./types";
 import { Label } from "./components/ui/label";
-import { REQUEST_STATUS } from "./constants";
-import { toast } from "sonner";
 
 interface IFormInput {
   method: string;
@@ -47,36 +50,33 @@ export const RequestForm = () => {
   const [timeout, setTimeout] = useState<number>(30);
   const [timeoutError, setTimeoutError] = useState<string | null>(null);
 
-  const [timeLeft, setTimeLeft] = useState<number>(timeout);
-  const [requestState, setRequestState] = useState<RequestStatus>(
-    REQUEST_STATUS.IDLE
-  );
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const isInProgress =
-    requestState === REQUEST_STATUS.WAITING ||
-    requestState === REQUEST_STATUS.SENDING;
+  const { requestState, response, errorMessage, timeLeft, send, cancel } =
+    useMockRequest(timeout);
 
-  useEffect(() => {
-    if (isDirty) {
-      setRequestState(REQUEST_STATUS.IDLE);
-    }
-  }, [isDirty]);
-
-  const onSubmit: SubmitHandler<IFormInput> = (data) => {
-    setRequestState(REQUEST_STATUS.SENDING);
-    setTimeLeft(timeout);
-    console.log(data);
+  const onSubmit: SubmitHandler<IFormInput> = async (data) => {
+    await send(data.method, data.url, data.requestBody);
   };
 
   const onCancel = useCallback(() => {
-    setRequestState(REQUEST_STATUS.IDLE);
-    setErrorMessage(null);
+    cancel();
 
     toast.info("Request cancelled", {
       description: "The request was cancelled.",
       duration: 3000,
     });
-  }, []);
+  }, [cancel]);
+
+  const isInProgress =
+    requestState === REQUEST_STATUS.WAITING ||
+    requestState === REQUEST_STATUS.SENDING;
+
+  useEffect(() => {
+    if (!isDirty) return;
+
+    if (!isInProgress && requestState !== REQUEST_STATUS.IDLE) {
+      cancel();
+    }
+  }, [isDirty, isInProgress, requestState, cancel]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -91,24 +91,6 @@ export const RequestForm = () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [onCancel]);
-
-  useEffect(() => {
-    if (requestState !== REQUEST_STATUS.SENDING) return;
-
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setRequestState(REQUEST_STATUS.ERROR);
-          setErrorMessage("Request timed out");
-          return timeout;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [requestState, timeout]);
 
   const method = watch("method");
 
@@ -195,7 +177,7 @@ export const RequestForm = () => {
                   rules={{
                     required: "URL is required",
                     pattern: {
-                      value: /^https?:\/\/[^\/\s]+(\/.*)?$/,
+                      value: /^https?:\/\/[^/\s]+(\/.*)?$/,
                       message: "Invalid URL format",
                     },
                   }}
@@ -239,7 +221,11 @@ export const RequestForm = () => {
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <div className="flex flex-row gap-2 ml-4 justify-between">
+            <div
+              className={`flex flex-row gap-2 ml-4 ${
+                isInProgress ? "justify-between" : "justify-end"
+              }`}
+            >
               {isInProgress && (
                 <Button variant="secondary" onClick={onCancel}>
                   Cancel
@@ -263,6 +249,7 @@ export const RequestForm = () => {
           </div>
         </div>
       </form>
+      <Response response={response} />
     </div>
   );
 };
