@@ -10,11 +10,12 @@ import {
 import { Textarea } from "./components/ui/textarea";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { StatusIndicator } from "./StatusIndicator";
 import type { RequestStatus } from "./types";
 import { Label } from "./components/ui/label";
 import { REQUEST_STATUS } from "./constants";
+import { toast } from "sonner";
 
 interface IFormInput {
   method: string;
@@ -47,9 +48,13 @@ export const RequestForm = () => {
   const [timeoutError, setTimeoutError] = useState<string | null>(null);
 
   const [timeLeft, setTimeLeft] = useState<number>(timeout);
-  const [requestState, setRequestState] = useState<RequestStatus>(REQUEST_STATUS.IDLE);
+  const [requestState, setRequestState] = useState<RequestStatus>(
+    REQUEST_STATUS.IDLE
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const isInProgress = requestState == REQUEST_STATUS.WAITING || requestState == REQUEST_STATUS.SENDING;
+  const isInProgress =
+    requestState === REQUEST_STATUS.WAITING ||
+    requestState === REQUEST_STATUS.SENDING;
 
   useEffect(() => {
     if (isDirty) {
@@ -62,6 +67,30 @@ export const RequestForm = () => {
     setTimeLeft(timeout);
     console.log(data);
   };
+
+  const onCancel = useCallback(() => {
+    setRequestState(REQUEST_STATUS.IDLE);
+    setErrorMessage(null);
+
+    toast.info("Request cancelled", {
+      description: "The request was cancelled.",
+      duration: 3000,
+    });
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onCancel();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onCancel]);
 
   useEffect(() => {
     if (requestState !== REQUEST_STATUS.SENDING) return;
@@ -210,13 +239,20 @@ export const RequestForm = () => {
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <Button
-              className="ml-3 px-7 self-end-safe"
-              type="submit"
-              disabled={isInProgress || !!timeoutError}
-            >
-              Send
-            </Button>
+            <div className="flex flex-row gap-2 ml-4 justify-between">
+              {isInProgress && (
+                <Button variant="secondary" onClick={onCancel}>
+                  Cancel
+                </Button>
+              )}
+              <Button
+                className="ml-3 px-7 self-end-safe"
+                type="submit"
+                disabled={isInProgress || !!timeoutError}
+              >
+                Send
+              </Button>
+            </div>
             <div className="w-[200px]">
               <StatusIndicator
                 status={requestState}
