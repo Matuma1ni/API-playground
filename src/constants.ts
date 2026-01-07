@@ -1,4 +1,5 @@
-import type { RequestStatus, StatusConfig } from "./types";
+import type { RequestStatus } from "./types/requestStatus.type";
+import type { StatusConfig } from "./types/statusConfig.type";
 
 export const REQUEST_STATUS = {
   IDLE: "idle",

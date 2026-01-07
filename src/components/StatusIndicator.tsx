@@ -1,5 +1,5 @@
-import { REQUEST_STATUS, REQUEST_STATUS_CONFIG } from "./constants";
-import type { RequestStatus } from "./types";
+import type { RequestStatus } from "@/types/requestStatus.type";
+import { REQUEST_STATUS, REQUEST_STATUS_CONFIG } from "../constants";
 
 type StatusIndicatorProps = {
   status: RequestStatus;
@@ -24,9 +24,10 @@ export const StatusIndicator = ({
       {status === REQUEST_STATUS.ERROR && (
         <div className={config.messageClassName}>{errorMessage}</div>
       )}
-      {status === REQUEST_STATUS.SENDING && (
-        <span> {timeLeft}s until timeout</span>
-      )}
+      {status === REQUEST_STATUS.SENDING ||
+        (status === REQUEST_STATUS.WAITING && (
+          <span> {timeLeft}s until timeout</span>
+        ))}
     </div>
   );
 };

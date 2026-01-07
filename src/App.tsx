@@ -1,6 +1,6 @@
 import "./App.css";
 import { Toaster } from "./components/ui/sonner";
-import { RequestForm } from "./RequestForm";
+import { RequestForm } from "./components/RequestForm";
 
 function App() {
   return (
