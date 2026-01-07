@@ -1,6 +1,6 @@
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { REQUEST_STATUS } from "./constants";
@@ -37,7 +37,7 @@ export const RequestForm = () => {
     control,
     handleSubmit,
     watch,
-    formState: { isDirty, errors },
+    formState: { errors },
     setValue,
   } = useForm({
     defaultValues: {
@@ -50,10 +50,13 @@ export const RequestForm = () => {
   const [timeout, setTimeout] = useState<number>(30);
   const [timeoutError, setTimeoutError] = useState<string | null>(null);
 
+  const hasSubmittedRef = useRef(false);
+
   const { requestState, response, errorMessage, timeLeft, send, cancel } =
     useMockRequest(timeout);
 
   const onSubmit: SubmitHandler<IFormInput> = async (data) => {
+    hasSubmittedRef.current = true;
     await send(data.method, data.url, data.requestBody);
   };
 
@@ -70,14 +73,15 @@ export const RequestForm = () => {
     requestState === REQUEST_STATUS.WAITING ||
     requestState === REQUEST_STATUS.SENDING;
 
-  /*useEffect(() => {
-    console.log("isDirty", isDirty);
-    if (!isDirty) return;
+  const method = watch("method");
+  const url = watch("url");
+  const requestBody = watch("requestBody");
 
-    if (!isInProgress && requestState !== REQUEST_STATUS.IDLE) {
-      cancel();
-    }
-  }, [isDirty, isInProgress, requestState, cancel]);*/
+  useEffect(() => {
+    if (!hasSubmittedRef.current) return;
+
+    cancel();
+  }, [method, url, requestBody, cancel]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -92,8 +96,6 @@ export const RequestForm = () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [onCancel]);
-
-  const method = watch("method");
 
   return (
     <div>
