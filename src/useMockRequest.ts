@@ -115,7 +115,11 @@ export const useMockRequest = (timeout: number) => {
 
     const scenario = getScenarioFromUrl(url);
 
+    await Promise.resolve()
+
     try {
+      setRequestState(REQUEST_STATUS.WAITING);
+
       const result = await mockFetch(
         scenario,
         controller.signal,
