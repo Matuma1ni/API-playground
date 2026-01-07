@@ -1,5 +1,5 @@
-import { Label } from "./components/ui/label";
-import type { ResponseData } from "./types";
+import type { ResponseData } from "@/types/responseData.type";
+import { Label } from "./ui/label";
 
 export const Response = ({ response }: { response: ResponseData | null }) => {
   if (!response) return null;
@@ -27,11 +27,17 @@ export const Response = ({ response }: { response: ResponseData | null }) => {
               </div>
               <div className="">{response.statusText}</div>
             </div>
-            <div className="italic text-sm">Completed in {response.durationMs}ms</div>
+            <div className="italic text-sm">
+              Completed in {response.durationMs}ms
+            </div>
           </div>
           <div className="border border-gray-300 mx-2"></div>
           <div className="bg-gray-100 p-4 rounded-md overflow-x-auto w-full">
-            {response.body ? JSON.stringify(response.body, null, 2) : <i>No body provided</i>}
+            {response.body ? (
+              JSON.stringify(response.body, null, 2)
+            ) : (
+              <i>No body provided</i>
+            )}
           </div>
         </div>
       </div>

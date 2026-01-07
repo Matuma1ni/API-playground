@@ -3,28 +3,29 @@ import { ErrorMessage } from "@hookform/error-message";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { REQUEST_STATUS } from "./constants";
+import type { Method } from "@/types/method.type";
+import { REQUEST_STATUS } from "../constants";
 import { Response } from "./Response";
-import { useMockRequest } from "./useMockRequest";
+import { useMockRequest } from "../hooks/useMockRequest";
 import { StatusIndicator } from "./StatusIndicator";
 
-import { Button } from "./components/ui/button";
-import { Input } from "./components/ui/input";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./components/ui/select";
-import { Textarea } from "./components/ui/textarea";
-import { Label } from "./components/ui/label";
+} from "./ui/select";
+import { Textarea } from "./ui/textarea";
+import { Label } from "./ui/label";
 
-interface IFormInput {
-  method: string;
+type FormInput = {
+  method: Method;
   url: string;
   requestBody?: string;
-}
+};
 
 const validateTimeout = (value: number) => {
   if (value < 10) return "Timeout cannot be less than 10 seconds";
@@ -39,9 +40,9 @@ export const RequestForm = () => {
     watch,
     formState: { errors },
     setValue,
-  } = useForm({
+  } = useForm<FormInput>({
     defaultValues: {
-      method: "",
+      method: "get",
       url: "",
       requestBody: "",
     },
@@ -55,7 +56,7 @@ export const RequestForm = () => {
   const { requestState, response, errorMessage, timeLeft, send, cancel } =
     useMockRequest(timeout);
 
-  const onSubmit: SubmitHandler<IFormInput> = async (data) => {
+  const onSubmit: SubmitHandler<FormInput> = async (data) => {
     hasSubmittedRef.current = true;
     await send(data.method, data.url, data.requestBody);
   };
@@ -130,7 +131,7 @@ export const RequestForm = () => {
         <div className="flex flex-row justify-between mb-3">
           <div className="flex flex-row w-full">
             <div className="flex flex-col w-full">
-              <div className="flex flex-row w-full mb-4">
+              <div className="flex flex-row w-full mb-4 gap-2">
                 <Controller
                   name="method"
                   control={control}
@@ -156,10 +157,10 @@ export const RequestForm = () => {
                           <SelectValue placeholder="Method" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="get">Get</SelectItem>
-                          <SelectItem value="post">Post</SelectItem>
-                          <SelectItem value="put">Put</SelectItem>
-                          <SelectItem value="delete">Delete</SelectItem>
+                          <SelectItem value="get">GET</SelectItem>
+                          <SelectItem value="post">POST</SelectItem>
+                          <SelectItem value="put">PUT</SelectItem>
+                          <SelectItem value="delete">DELETE</SelectItem>
                         </SelectContent>
                       </Select>
                       {fieldState.error && (

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { REQUEST_STATUS } from "./constants";
-import type { RequestStatus, ResponseData } from "./types";
+import { REQUEST_STATUS } from "../constants";
+import type { ResponseData } from "@/types/responseData.type";
+import type { RequestStatus } from "@/types/requestStatus.type";
 
 type MockSuccessScenario = {
   type: "success";
@@ -19,7 +20,6 @@ const getScenarioFromUrl = (url: string): MockScenario => {
       statusText: "OK",
       body: {
         message: "Request completed successfully",
-        data: { id: 1, name: "John Doe" },
       },
     };
   }
@@ -115,7 +115,7 @@ export const useMockRequest = (timeout: number) => {
 
     const scenario = getScenarioFromUrl(url);
 
-    await Promise.resolve()
+    await Promise.resolve();
 
     try {
       setRequestState(REQUEST_STATUS.WAITING);
@@ -155,7 +155,11 @@ export const useMockRequest = (timeout: number) => {
   }, []);
 
   useEffect(() => {
-    if (requestState !== REQUEST_STATUS.SENDING) return;
+    if (
+      requestState !== REQUEST_STATUS.SENDING &&
+      requestState !== REQUEST_STATUS.WAITING
+    )
+      return;
     const id = setInterval(() => {
       setTimeLeft((prev) => Math.max(prev - 1, 0));
     }, 1000);
