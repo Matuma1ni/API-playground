@@ -70,13 +70,14 @@ export const RequestForm = () => {
     requestState === REQUEST_STATUS.WAITING ||
     requestState === REQUEST_STATUS.SENDING;
 
-  useEffect(() => {
+  /*useEffect(() => {
+    console.log("isDirty", isDirty);
     if (!isDirty) return;
 
     if (!isInProgress && requestState !== REQUEST_STATUS.IDLE) {
       cancel();
     }
-  }, [isDirty, isInProgress, requestState, cancel]);
+  }, [isDirty, isInProgress, requestState, cancel]);*/
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
