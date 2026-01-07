@@ -2,7 +2,99 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { REQUEST_STATUS } from "./constants";
 import type { RequestStatus, ResponseData } from "./types";
 
-export function useMockRequest(timeout: number) {
+type MockSuccessScenario = {
+  type: "success";
+  status: 200 | 304 | 404;
+  statusText: string;
+  body: unknown;
+};
+
+type MockScenario = MockSuccessScenario | { type: "timeout" };
+
+const getScenarioFromUrl = (url: string): MockScenario => {
+  if (url.includes("/success")) {
+    return {
+      type: "success",
+      status: 200,
+      statusText: "OK",
+      body: {
+        message: "Request completed successfully",
+        data: { id: 1, name: "John Doe" },
+      },
+    };
+  }
+
+  if (url.includes("/not-modified")) {
+    return {
+      type: "success",
+      status: 304,
+      statusText: "Not Modified",
+      body: null,
+    };
+  }
+
+  if (url.includes("/not-found")) {
+    return {
+      type: "success",
+      status: 404,
+      statusText: "Not Found",
+      body: {
+        message: "Resource not found",
+      },
+    };
+  }
+
+  return { type: "timeout" };
+};
+
+const mockFetch = (
+  scenario: MockScenario,
+  signal: AbortSignal,
+  timeoutMs: number,
+  method: string,
+  body?: string
+): Promise<ResponseData> => {
+  return new Promise((resolve, reject) => {
+    const start = performance.now();
+
+    const timeoutId = window.setTimeout(() => {
+      reject(new Error("TIMEOUT"));
+    }, timeoutMs);
+
+    const responseId =
+      scenario.type === "success"
+        ? window.setTimeout(() => {
+            resolve({
+              status: scenario.status,
+              statusText:
+                scenario.status === 200
+                  ? "OK"
+                  : scenario.status === 304
+                  ? "Not Modified"
+                  : "Not Found",
+              durationMs: Math.round(performance.now() - start),
+              body: {
+                message: scenario.body,
+                request: {
+                  method: method,
+                  ...((method === "post" || method === "put") && {
+                    body: body,
+                  }),
+                },
+              },
+            });
+          }, 500)
+        : null;
+
+    signal.addEventListener("abort", () => {
+      clearTimeout(timeoutId);
+      if (responseId) clearTimeout(responseId);
+      reject(new DOMException("Aborted", "AbortError"));
+    });
+  });
+};
+
+export const useMockRequest = (timeout: number) => {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [requestState, setRequestState] = useState<RequestStatus>(
@@ -21,32 +113,32 @@ export function useMockRequest(timeout: number) {
     setErrorMessage(null);
     setTimeLeft(timeout);
 
+    const scenario = getScenarioFromUrl(url);
+
     try {
-      const start = performance.now();
-
-      const result = await new Promise<ResponseData>((resolve, reject) => {
-        const timeoutId = window.setTimeout(() => {
-          resolve({
-            status: 200,
-            statusText: "OK",
-            durationMs: Math.round(performance.now() - start),
-            body: { method, url, body },
-          });
-        }, 500);
-
-        controller.signal.addEventListener("abort", () => {
-          clearTimeout(timeoutId);
-          reject(new DOMException("Aborted", "AbortError"));
-        });
-      });
+      const result = await mockFetch(
+        scenario,
+        controller.signal,
+        timeout * 1000,
+        method,
+        body
+      );
 
       setResponse(result);
       setRequestState(REQUEST_STATUS.SUCCESS);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
 
+      if (err instanceof Error && err.message === "TIMEOUT") {
+        setErrorMessage("Request timed out");
+        setRequestState(REQUEST_STATUS.ERROR);
+        return;
+      }
+
       setErrorMessage("Request failed");
       setRequestState(REQUEST_STATUS.ERROR);
+    } finally {
+      abortControllerRef.current = null;
     }
   };
 
@@ -60,21 +152,12 @@ export function useMockRequest(timeout: number) {
 
   useEffect(() => {
     if (requestState !== REQUEST_STATUS.SENDING) return;
-
     const id = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          cancel();
-          setErrorMessage("Request timed out");
-          setRequestState(REQUEST_STATUS.ERROR);
-          return timeout;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((prev) => Math.max(prev - 1, 0));
     }, 1000);
 
     return () => clearInterval(id);
-  }, [requestState, timeout, cancel]);
+  }, [requestState]);
 
   useEffect(() => {
     return () => abortControllerRef.current?.abort();
@@ -88,4 +171,4 @@ export function useMockRequest(timeout: number) {
     send,
     cancel,
   };
-}
+};

@@ -31,7 +31,7 @@ export const Response = ({ response }: { response: ResponseData | null }) => {
           </div>
           <div className="border border-gray-300 mx-2"></div>
           <div className="bg-gray-100 p-4 rounded-md overflow-x-auto w-full">
-            {JSON.stringify(response.body, null, 2)}
+            {response.body ? JSON.stringify(response.body, null, 2) : <i>No body provided</i>}
           </div>
         </div>
       </div>
