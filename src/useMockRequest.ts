@@ -50,7 +50,9 @@ const getScenarioFromUrl = (url: string): MockScenario => {
 const mockFetch = (
   scenario: MockScenario,
   signal: AbortSignal,
-  timeoutMs: number
+  timeoutMs: number,
+  method: string,
+  body?: string
 ): Promise<ResponseData> => {
   return new Promise((resolve, reject) => {
     const start = performance.now();
@@ -71,7 +73,15 @@ const mockFetch = (
                   ? "Not Modified"
                   : "Not Found",
               durationMs: Math.round(performance.now() - start),
-              body: { scenario },
+              body: {
+                message: scenario.body,
+                request: {
+                  method: method,
+                  ...((method === "post" || method === "put") && {
+                    body: body,
+                  }),
+                },
+              },
             });
           }, 500)
         : null;
@@ -109,7 +119,9 @@ export const useMockRequest = (timeout: number) => {
       const result = await mockFetch(
         scenario,
         controller.signal,
-        timeout * 1000
+        timeout * 1000,
+        method,
+        body
       );
 
       setResponse(result);
