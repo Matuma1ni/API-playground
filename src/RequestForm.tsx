@@ -80,6 +80,7 @@ export const RequestForm = () => {
   useEffect(() => {
     if (!hasSubmittedRef.current) return;
 
+    hasSubmittedRef.current = false;
     cancel();
   }, [method, url, requestBody, cancel]);
 
