@@ -2,6 +2,8 @@
 
 React project "API Playground" — a simple tool for testing API endpoints with visual feedback for request lifecycle stages, timeouts, and error states.
 
+The project is deployed and available at: https://matuma1ni.github.io/API-playground/
+
 **Prerequisites**
 
 - Git
