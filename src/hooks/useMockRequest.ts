@@ -58,12 +58,16 @@ const mockFetch = (
     const start = performance.now();
 
     const timeoutId = window.setTimeout(() => {
+      if (responseId !== null) {
+        window.clearTimeout(responseId);
+      }
       reject(new Error("TIMEOUT"));
     }, timeoutMs);
 
     const responseId =
       scenario.type === "success"
         ? window.setTimeout(() => {
+            window.clearTimeout(timeoutId);
             resolve({
               status: scenario.status,
               statusText:
@@ -86,11 +90,15 @@ const mockFetch = (
           }, 500)
         : null;
 
-    signal.addEventListener("abort", () => {
-      clearTimeout(timeoutId);
-      if (responseId) clearTimeout(responseId);
-      reject(new DOMException("Aborted", "AbortError"));
-    });
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timeoutId);
+        if (responseId) clearTimeout(responseId);
+        reject(new DOMException("Aborted", "AbortError"));
+      },
+      { once: true },
+    );
   });
 };
 
