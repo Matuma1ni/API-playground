@@ -24,10 +24,10 @@ export const StatusIndicator = ({
       {status === REQUEST_STATUS.ERROR && (
         <div className={config.messageClassName}>{errorMessage}</div>
       )}
-      {status === REQUEST_STATUS.SENDING ||
-        (status === REQUEST_STATUS.WAITING && (
-          <span> {timeLeft}s until timeout</span>
-        ))}
+      {(status === REQUEST_STATUS.SENDING ||
+        status === REQUEST_STATUS.WAITING) && (
+        <span> {timeLeft}s until timeout</span>
+      )}
     </div>
   );
 };
