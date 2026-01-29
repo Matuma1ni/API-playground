@@ -88,7 +88,9 @@ export const RequestForm = () => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onCancel();
+        if (isInProgress) {
+          onCancel();
+        }
       }
     };
 
@@ -97,7 +99,7 @@ export const RequestForm = () => {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onCancel]);
+  }, [onCancel, isInProgress]);
 
   return (
     <div>
@@ -144,7 +146,7 @@ export const RequestForm = () => {
                         value={field.value}
                         onValueChange={(e) => {
                           field.onChange(e);
-                          if (field.value !== "post" && field.value !== "put") {
+                          if (e !== "post" && e !== "put") {
                             setValue("requestBody", "");
                           }
                         }}

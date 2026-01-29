@@ -52,26 +52,30 @@ const mockFetch = (
   signal: AbortSignal,
   timeoutMs: number,
   method: string,
-  body?: string
+  body?: string,
 ): Promise<ResponseData> => {
   return new Promise((resolve, reject) => {
     const start = performance.now();
 
     const timeoutId = window.setTimeout(() => {
+      if (responseId !== null) {
+        window.clearTimeout(responseId);
+      }
       reject(new Error("TIMEOUT"));
     }, timeoutMs);
 
     const responseId =
       scenario.type === "success"
         ? window.setTimeout(() => {
+            window.clearTimeout(timeoutId);
             resolve({
               status: scenario.status,
               statusText:
                 scenario.status === 200
                   ? "OK"
                   : scenario.status === 304
-                  ? "Not Modified"
-                  : "Not Found",
+                    ? "Not Modified"
+                    : "Not Found",
               durationMs: Math.round(performance.now() - start),
               body: {
                 message: scenario.body,
@@ -86,11 +90,15 @@ const mockFetch = (
           }, 500)
         : null;
 
-    signal.addEventListener("abort", () => {
-      clearTimeout(timeoutId);
-      if (responseId) clearTimeout(responseId);
-      reject(new DOMException("Aborted", "AbortError"));
-    });
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timeoutId);
+        if (responseId) clearTimeout(responseId);
+        reject(new DOMException("Aborted", "AbortError"));
+      },
+      { once: true },
+    );
   });
 };
 
@@ -98,13 +106,16 @@ export const useMockRequest = (timeout: number) => {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [requestState, setRequestState] = useState<RequestStatus>(
-    REQUEST_STATUS.IDLE
+    REQUEST_STATUS.IDLE,
   );
   const [response, setResponse] = useState<ResponseData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(timeout);
 
   const send = async (method: string, url: string, body?: string) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
@@ -125,7 +136,7 @@ export const useMockRequest = (timeout: number) => {
         controller.signal,
         timeout * 1000,
         method,
-        body
+        body,
       );
 
       setResponse(result);
